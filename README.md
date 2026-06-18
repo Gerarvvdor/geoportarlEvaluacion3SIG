@@ -160,3 +160,4 @@ psql -U postgres -d geoportal -c "SELECT ST_SRID(geom) FROM nombre_tabla LIMIT 1
 # Cargar datos manualmente
 bash /Users/tato/geoportal/scripts/load_data.sh data/archivo.shp nombre_tabla
 ```
+# geoportarlEvaluacion3SIG
