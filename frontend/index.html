@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geoportal Interactivo</title>
+  <meta name="description" content="Geoportal interactivo temático con tecnologías libres y de código abierto." />
+
+  <!-- OpenLayers -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome para íconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside id="sidebar" class="sidebar open">
+    <div class="sidebar-header">
+      <div class="logo-area">
+        <div class="logo-icon"><i class="fa-solid fa-globe"></i></div>
+        <div>
+          <h1 id="portal-title">Geoportal</h1>
+          <p id="portal-subtitle">Sistema de Información Geográfica</p>
+        </div>
+      </div>
+      <button id="btn-toggle-sidebar" class="icon-btn" title="Colapsar panel">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+    </div>
+
+    <!-- Configuración rápida (solo en desarrollo) -->
+    <div class="sidebar-section" id="config-section">
+      <div class="section-title">
+        <i class="fa-solid fa-sliders"></i> Configuración
+      </div>
+      <div class="config-grid">
+        <label>GeoServer URL</label>
+        <input id="cfg-geoserver" type="text" value="http://localhost:8080/geoserver" placeholder="http://localhost:8080/geoserver" />
+        <label>Workspace</label>
+        <input id="cfg-workspace" type="text" value="geoportal" placeholder="geoportal" />
+        <label>Tema del portal</label>
+        <input id="cfg-theme" type="text" value="Geoportal Temático" placeholder="ej: Movilidad Urbana" />
+      </div>
+      <button id="btn-apply-config" class="btn-primary">
+        <i class="fa-solid fa-rotate"></i> Aplicar
+      </button>
+    </div>
+
+    <!-- Capas -->
+    <div class="sidebar-section">
+      <div class="section-title">
+        <i class="fa-solid fa-layer-group"></i> Capas
+        <button id="btn-add-layer" class="icon-btn-sm" title="Agregar capa">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+      <div id="layers-list" class="layers-list">
+        <div class="empty-state">
+          <i class="fa-solid fa-map"></i>
+          <p>Agrega capas desde GeoServer</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="sidebar-section">
+      <div class="section-title">
+        <i class="fa-solid fa-palette"></i> Leyenda
+      </div>
+      <div id="legend-container" class="legend-container">
+        <div class="empty-state">
+          <i class="fa-solid fa-image"></i>
+          <p>Sin capas activas</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Búsqueda / Filtro -->
+    <div class="sidebar-section">
+      <div class="section-title">
+        <i class="fa-solid fa-magnifying-glass"></i> Búsqueda y Filtros
+      </div>
+      <div class="search-area">
+        <div class="input-group">
+          <i class="fa-solid fa-search input-icon"></i>
+          <input id="search-input" type="text" placeholder="Buscar atributo..." />
+        </div>
+        <div class="input-group">
+          <label>Capa a filtrar</label>
+          <select id="filter-layer-select">
+            <option value="">— Seleccionar capa —</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Campo</label>
+          <select id="filter-field-select">
+            <option value="">— Primero selecciona capa —</option>
+          </select>
+        </div>
+        <button id="btn-search" class="btn-primary">
+          <i class="fa-solid fa-filter"></i> Filtrar
+        </button>
+        <button id="btn-clear-filter" class="btn-secondary">
+          <i class="fa-solid fa-xmark"></i> Limpiar filtro
+        </button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ===== MAPA ===== -->
+  <main class="map-area">
+    <div id="map"></div>
+
+    <!-- Toolbar flotante -->
+    <div class="map-toolbar">
+      <button id="btn-zoom-in" class="tool-btn" title="Zoom +"><i class="fa-solid fa-plus"></i></button>
+      <button id="btn-zoom-out" class="tool-btn" title="Zoom -"><i class="fa-solid fa-minus"></i></button>
+      <div class="toolbar-divider"></div>
+      <button id="btn-home" class="tool-btn" title="Vista inicial"><i class="fa-solid fa-house"></i></button>
+      <button id="btn-full-extent" class="tool-btn" title="Extensión completa"><i class="fa-solid fa-expand"></i></button>
+      <div class="toolbar-divider"></div>
+      <button id="btn-identify" class="tool-btn active" title="Identificar elementos" data-active="true"><i class="fa-solid fa-crosshairs"></i></button>
+    </div>
+
+    <!-- Selector de mapa base -->
+    <div class="basemap-selector" id="basemap-selector">
+      <div class="basemap-label">Mapa base</div>
+      <div class="basemap-options">
+        <button class="basemap-btn active" data-basemap="osm" title="OpenStreetMap">OSM</button>
+        <button class="basemap-btn" data-basemap="carto-light" title="CartoDB Light">Claro</button>
+        <button class="basemap-btn" data-basemap="carto-dark" title="CartoDB Dark">Oscuro</button>
+        <button class="basemap-btn" data-basemap="esri-topo" title="ESRI Topográfico">Topo</button>
+      </div>
+    </div>
+
+    <!-- Escala -->
+    <div id="scale-bar" class="scale-bar"></div>
+
+    <!-- Coordenadas del cursor -->
+    <div id="mouse-coords" class="mouse-coords">— , —</div>
+  </main>
+
+  <!-- ===== PANEL DE INFORMACIÓN (click en mapa) ===== -->
+  <div id="info-panel" class="info-panel hidden">
+    <div class="info-panel-header">
+      <span><i class="fa-solid fa-info-circle"></i> Atributos del elemento</span>
+      <button id="btn-close-info" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="info-content" class="info-content">
+      <p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> Consultando...</p>
+    </div>
+  </div>
+
+  <!-- ===== MODAL AGREGAR CAPA ===== -->
+  <div id="modal-add-layer" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-plus"></i> Agregar Capa WMS</h3>
+        <button class="icon-btn" id="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label>Nombre de la capa (layerName en GeoServer)</label>
+          <input id="new-layer-name" type="text" placeholder="ej: distritos" />
+        </div>
+        <div class="input-group">
+          <label>Etiqueta para mostrar</label>
+          <input id="new-layer-label" type="text" placeholder="ej: Distritos" />
+        </div>
+        <div class="input-group">
+          <label>Opacidad</label>
+          <input id="new-layer-opacity" type="range" min="0" max="1" step="0.05" value="0.8" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-close-modal-2" class="btn-secondary">Cancelar</button>
+        <button id="btn-confirm-add-layer" class="btn-primary">
+          <i class="fa-solid fa-plus"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
